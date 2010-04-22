@@ -2,7 +2,7 @@
 
 == About
 
-This is an experimental client for http://chirpstream.twitter.com.
+This is an experimental EventMachine-based client for http://chirpstream.twitter.com.
 
 == Usage
 
