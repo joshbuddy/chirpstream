@@ -1,0 +1,19 @@
+= Chirpstream
+
+== About
+
+This is an experimental client for http://chirpstream.twitter.com.
+
+== Usage
+
+  require 'rubygems'
+  require 'chirpstream'
+  require 'rainbow'
+  
+  chirp = Chirpstream.new('joshbuddy', 'xxxxxxxx')
+  chirp.reconnect{ puts "reconnecting..." }
+  chirp.tweet {|t| puts "#{t['text']} (from #{t['user']['name'].foreground(:red)} (#{('@' + t['user']['screen_name']).foreground(:green)}))" }
+  chirp.follow {|t| puts "#{t.data['source'].data['screen_name'].foreground(:green)} following #{t.data['target'].data['screen_name'].foreground(:green)}" }
+  chirp.favorite {|t| puts "#{t.data['source'].data['screen_name'].foreground(:green)} <3 -> #{t.data['target_object'].data['text']}" }
+  chirp.retweet {|t| puts "#{t.data['source'].data['screen_name'].foreground(:green)} RT -> #{t.data['target_object'].data['text']}" }
+  chirp.connect
