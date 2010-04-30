@@ -1,6 +1,6 @@
 require 'eventmachine'
 require 'em-http'
-require 'json'
+require 'yajl'
 require 'pp'
 require 'load_path_find'
 
@@ -62,13 +62,16 @@ class Chirpstream
   def dispatch_friend(data)
     unless @handlers.friend.empty?
       data['friends'].each_slice(100) do |friend_ids|
-        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]})
-        friend_http.callback do
-          friends = JSON.parse(friend_http.response)
+        parser = Yajl::Parser.new
+        parser.on_parse_complete = proc { |friends|
           friends.each do |friend|
             @handlers.friend.each{|h| h.call(friend)}
           end
-        end
+        }
+        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]})
+        http.stream { |chunk|
+          parser << chunk
+        }
       end
     end
   end
@@ -123,45 +126,44 @@ class Chirpstream
     @handlers.reconnect.each{|h| h.call}
   end
   
+  def handle_tweet(parsed_data)
+    if parsed_data['friends']
+      dispatch_friend(parsed_data)
+    elsif parsed_data['text']
+      dispatch_tweet(parsed_data)
+    elsif parsed_data['event']
+      case parsed_data['event']
+      when 'follow'
+        dispatch_follow(parsed_data)
+      when 'favorite'
+        dispatch_favorite(parsed_data)
+      when 'retweet'
+        dispatch_retweet(parsed_data)
+      else
+        puts "weird event"
+        pp parsed_data
+      end
+    elsif parsed_data['delete']
+      dispatch_delete(parsed_data)
+    else
+      puts "i didn't know what to do with this!"
+      pp parsed_data
+    end
+  end
+  
   def connect
     unless EM.reactor_running?
       EM.run { connect }
     else
+      parser = Yajl::Parser.new
+      parser.on_parse_complete = method(:handle_tweet)
       http = EM::HttpRequest.new(@connect_url).get :head => {'authorization' => [@username, @password]}
       http.errback { |e, err|
         dispatch_reconnect
         connect
       }
-      http.stream { |chunk| 
-        @data << chunk
-        begin
-          parsed_data = JSON.parse(@data)
-          @data = ''
-          if parsed_data['friends']
-            dispatch_friend(parsed_data)
-          elsif parsed_data['text']
-            dispatch_tweet(parsed_data)
-          elsif parsed_data['event']
-            case parsed_data['event']
-            when 'follow'
-              dispatch_follow(parsed_data)
-            when 'favorite'
-              dispatch_favorite(parsed_data)
-            when 'retweet'
-              dispatch_retweet(parsed_data)
-            else
-              puts "weird event"
-              pp parsed_data
-            end
-          elsif parsed_data['delete']
-            dispatch_delete(parsed_data)
-          else
-            puts "i didn't know what to do with this!"
-            pp parsed_data
-          end
-        rescue JSON::ParserError
-          #puts "need more"
-        end
+      http.stream { |chunk|
+        parser << chunk
       }
     end
   end

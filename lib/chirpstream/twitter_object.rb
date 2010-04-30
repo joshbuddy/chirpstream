@@ -94,10 +94,14 @@ class TwitterObject
   def load_tweet_data(ids, data, &block)
     id = ids.shift
     if (id)
-      http = EM::HttpRequest.new("http://api.twitter.com/1/statuses/show/%s.json" % id).get :head => {'authorization' => [base.username, base.password]}
-      http.callback {
-        data[id] = JSON.parse(http.response)
+      parser = Yajl::Parser.new
+      parser.on_parse_complete = proc { |parsed|
+        data[id] = parsed
         load_tweet_data(ids, data, &block)
+      }
+      http = EM::HttpRequest.new("http://api.twitter.com/1/statuses/show/%s.json" % id).get :head => {'authorization' => [base.username, base.password]}
+      http.stream { |chunk|
+        parser << chunk
       }
     else
       yield
@@ -115,12 +119,16 @@ class TwitterObject
   end
   
   def load_user_data(ids, data)
-    http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post :head => {'authorization' => [base.username, base.password]}, :body => {'user_id' => ids.join(',')}
-    http.callback {
-      JSON.parse(http.response).each do |user|
+    parser = Yajl::Parser.new
+    parser.on_parse_complete = proc { |parsed|
+      parsed.each do |user|
         data[user["id"]] = user
       end
       yield
+    }
+    http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post :head => {'authorization' => [base.username, base.password]}, :body => {'user_id' => ids.join(',')}
+    http.stream { |chunk|
+      parser << chunk
     }
   end
   
