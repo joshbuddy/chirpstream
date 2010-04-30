@@ -91,13 +91,13 @@ class TwitterObject
     end
   end
   
-  def load_tweet_data(ids, data)
+  def load_tweet_data(ids, data, &block)
     id = ids.shift
     if (id)
       http = EM::HttpRequest.new("http://api.twitter.com/1/statuses/show/%s.json" % id).get :head => {'authorization' => [base.username, base.password]}
       http.callback {
         data[id] = JSON.parse(http.response)
-        load_tweet_data(ids, data)
+        load_tweet_data(ids, data, &block)
       }
     else
       yield
