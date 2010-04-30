@@ -1,29 +1,17 @@
 class Chirpstream
-  class Tweet
+  class Tweet < TwitterObject
     
-    URL = "http://api.twitter.com/1/statuses/show/%s.json"
-
-    attr_reader :id, :data
-    
-    def initialize(base, id)
-      @base = base
-      @id = id
-    end
-    
-    def load
-      unless loaded?
-        http = EM::HttpRequest.new(URL % id).get(:head => {'authorization' => [@base.username, @base.password]})
-        http.callback {
-          if http.response_header.status == 200
-            @data = JSON.parse(http.response)
-            yield self
-          end
-        }
-      end
+    ATTRS = [:coordinates, :favorited, :created_at, :truncated, :contributors, :text, :id, :geo, :in_reply_to_user_id, :place, :source, :in_reply_to_screen_name, :in_reply_to_status_id, :user]
+  
+    attr_accessor *ATTRS
+    user_writer :user
+  
+    def tweet_loadable_id
+      id
     end
     
     def loaded?
-      @data
+      !text.nil?
     end
   end
 end

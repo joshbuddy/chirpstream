@@ -1,29 +1,22 @@
 class Chirpstream
-  class User
-  
-    URL = "http://api.twitter.com/1/users/show/%s.json"
-  
-    attr_reader :id, :data
+  class User < TwitterObject
 
-    def initialize(base, id)
-      @base = base
-      @id = id
-    end
-  
-    def load
-      unless loaded?
-        http = EM::HttpRequest.new(URL % id).get(:head => {'authorization' => [@base.username, @base.password]})
-        http.callback {
-          if http.response_header.status == 200
-            @data = JSON.parse(http.response)
-            yield self
-          end
-        }
-      end
-    end
-  
+    ATTRS = [
+      :profile_background_tile, :name, :profile_sidebar_border_color, :profile_sidebar_fill_color, :profile_image_url, :location, :created_at,
+      :profile_link_color, :url, :contributors_enabled, :favourites_count, :utc_offset, :id, :followers_count, :protected, :lang,
+      :profile_text_color, :geo_enabled, :profile_background_color, :time_zone, :notifications, :description, :verified, :profile_background_image_url,
+      :statuses_count, :friends_count, :screen_name, :following
+    ]
+   
+    attr_accessor *ATTRS
+    
     def loaded?
-      @data
+      name
     end
+    
+    def user_loadable_id
+      id
+    end
+    
   end
 end

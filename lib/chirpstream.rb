@@ -6,6 +6,7 @@ require 'load_path_find'
 
 $LOAD_PATH.add_current
 
+require 'chirpstream/twitter_object'
 require 'chirpstream/event'
 require 'chirpstream/event/follow'
 require 'chirpstream/event/retweet'
@@ -74,50 +75,47 @@ class Chirpstream
   
   def dispatch_tweet(data)
     unless @handlers.tweet.empty?
-      @handlers.tweet.each{|h| h.call(data)}
+      tweet = Tweet.new(self, data)
+      tweet.load_all { |t|
+        @handlers.tweet.each{|h| h.call(tweet)}
+      }
     end
   end
   
   def dispatch_follow(data)
     unless @handlers.follow.empty?
-      data['target'] = User.new(self, data['target']['id'])
-      data['source'] = User.new(self, data['source']['id'])
-      e = Follow.new(data)
-      e.load_all {
-        @handlers.follow.each{|h| h.call(e)}
+      follow = Follow.new(self, data)
+      follow.load_all { |f|
+        @handlers.follow.each{|h| h.call(f)}
       }
     end
   end
   
   def dispatch_favorite(data)
-    return if @handlers.follow.empty?
-    data['target'] = User.new(self, data['target']['id'])
-    data['source'] = User.new(self, data['source']['id'])
-    data['target_object'] = Tweet.new(self, data['target_object']['id'])
-    e = Favorite.new(data)
-    e.load_all {
-      @handlers.favorite.each{|h| h.call(e)}
-    }
+    unless @handlers.favorite.empty?
+      favorite = Favorite.new(self, data)
+      favorite.load_all { |f|
+        @handlers.favorite.each{|h| h.call(f)}
+      }
+    end
   end
   
   def dispatch_retweet(data)
-    return if @handlers.retweet.empty?
-    data['target'] = User.new(self, data['target']['id'])
-    data['source'] = User.new(self, data['source']['id'])
-    data['target_object'] = Tweet.new(self, data['target_object']['id'])
-    e = Retweet.new(data)
-    e.load_all {
-      @handlers.retweet.each{|h| h.call(e)}
-    }
+    unless @handlers.retweet.empty?
+      retweet = Retweet.new(self, data)
+      retweet.load_all { |f|
+        @handlers.retweet.each{|h| h.call(f)}
+      }
+    end
   end
     
   def dispatch_delete(data)
-    return if @handlers.delete.empty?
-    data['delete']['user_id'] = User.new(self, data['delete']['user_id'])
-    e = Delete.new(data)
-    e.load_all {
-      @handlers.delete.each{|h| h.call(e)}
-    }
+    unless @handlers.delete.empty?
+      delete = Delete.new(self, data)
+      delete.load_all { |f|
+        @handlers.delete.each{|h| h.call(f)}
+      }
+    end
   end
   
   def dispatch_reconnect
@@ -144,6 +142,7 @@ class Chirpstream
           elsif parsed_data['text']
             dispatch_tweet(parsed_data)
           elsif parsed_data['event']
+            pp parsed_data
             case parsed_data['event']
             when 'follow'
               dispatch_follow(parsed_data)
