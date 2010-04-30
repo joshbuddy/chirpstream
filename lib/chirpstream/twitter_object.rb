@@ -6,8 +6,6 @@ class TwitterObject
   attr_reader :base
 
   def initialize(base, data = nil)
-    puts "initializing TwitterObject #{self.class.to_s}"
-    puts "with data #{data.inspect}" if data
     @base = base
     from_json(data) if data
     yield self if block_given?
@@ -17,13 +15,11 @@ class TwitterObject
     attrs.each do |attr|
       module_eval "
       def #{attr}=(#{attr})
-        puts 'writing #{attr}...'
         @#{attr} = if #{attr}.is_a?(Hash)
           Chirpstream::User.new(base, #{attr})
         else
           Chirpstream::User.new(base) {|u| u.id = #{attr}}
         end
-        puts '@#{attr} is now ' + @#{attr}.inspect
       end
       "
     end

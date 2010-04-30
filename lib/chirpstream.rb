@@ -142,7 +142,6 @@ class Chirpstream
           elsif parsed_data['text']
             dispatch_tweet(parsed_data)
           elsif parsed_data['event']
-            pp parsed_data
             case parsed_data['event']
             when 'follow'
               dispatch_follow(parsed_data)
