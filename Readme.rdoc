@@ -4,6 +4,10 @@
 
 This is an experimental EventMachine-based client for http://chirpstream.twitter.com.
 
+== Fun Things You Can Do At Home
+
+Fire up the 
+
 == Usage
 
   require 'rubygems'
