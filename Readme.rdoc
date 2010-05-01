@@ -6,7 +6,12 @@ This is an experimental EventMachine-based client for http://chirpstream.twitter
 
 == Fun Things You Can Do At Home
 
-Fire up the 
+Fire up the growl client!
+
+  sudo gem install chirpstream
+  chirp_growl
+  
+Wow! It's growling my tweets! How meta.
 
 == Usage
 
