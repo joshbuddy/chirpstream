@@ -5,26 +5,29 @@
 
 Gem::Specification.new do |s|
   s.name = %q{chirpstream}
-  s.version = "0.0.2"
+  s.version = "0.0.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Joshua Hull"]
-  s.date = %q{2010-04-22}
+  s.date = %q{2010-05-01}
+  s.default_executable = %q{chirp_growl}
   s.description = %q{Eventmachine-based Chirpstream client}
   s.email = %q{joshbuddy@gmail.com}
+  s.executables = ["chirp_growl"]
   s.files = [
     "Gemfile",
     "Rakefile",
     "Readme.rdoc",
     "VERSION",
+    "bin/chirp_growl",
     "lib/chirpstream.rb",
     "lib/chirpstream/event.rb",
     "lib/chirpstream/event/delete.rb",
     "lib/chirpstream/event/favorite.rb",
     "lib/chirpstream/event/follow.rb",
     "lib/chirpstream/event/retweet.rb",
-    "lib/chirpstream/loadable.rb",
     "lib/chirpstream/tweet.rb",
+    "lib/chirpstream/twitter_object.rb",
     "lib/chirpstream/user.rb"
   ]
   s.homepage = %q{http://github.com/joshbuddy/chirpstream}
@@ -40,18 +43,18 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<eventmachine>, [">= 0.12.10"])
       s.add_runtime_dependency(%q<em-http-request>, [">= 0.2.7"])
-      s.add_runtime_dependency(%q<json>, [">= 1.2.4"])
+      s.add_runtime_dependency(%q<yajl-ruby>, [">= 0.7.5"])
       s.add_runtime_dependency(%q<load_path_find>, [">= 0.0.5"])
     else
       s.add_dependency(%q<eventmachine>, [">= 0.12.10"])
       s.add_dependency(%q<em-http-request>, [">= 0.2.7"])
-      s.add_dependency(%q<json>, [">= 1.2.4"])
+      s.add_dependency(%q<yajl-ruby>, [">= 0.7.5"])
       s.add_dependency(%q<load_path_find>, [">= 0.0.5"])
     end
   else
     s.add_dependency(%q<eventmachine>, [">= 0.12.10"])
     s.add_dependency(%q<em-http-request>, [">= 0.2.7"])
-    s.add_dependency(%q<json>, [">= 1.2.4"])
+    s.add_dependency(%q<yajl-ruby>, [">= 0.7.5"])
     s.add_dependency(%q<load_path_find>, [">= 0.0.5"])
   end
 end
