@@ -11,6 +11,7 @@ begin
     s.add_dependency 'em-http-request', ">= 0.2.7"
     s.add_dependency 'yajl-ruby', ">= 0.7.5"
     s.add_dependency 'load_path_find', ">= 0.0.5"
+    s.executables = ['chirp_growl']
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
