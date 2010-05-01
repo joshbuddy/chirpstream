@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
     "Readme.rdoc",
     "VERSION",
     "bin/chirp_growl",
+    "image/bird.png",
     "lib/chirpstream.rb",
     "lib/chirpstream/event.rb",
     "lib/chirpstream/event/delete.rb",
