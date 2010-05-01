@@ -52,7 +52,6 @@ chirp.tweet { |t|
       self.image = image_path if image_path
     }
   end
-#  g.notify "ruby-growl Notification", "@#{t.user.screen_name}", t.text
 }
 
 chirp.connect
