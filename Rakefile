@@ -6,7 +6,7 @@ begin
     s.email = "joshbuddy@gmail.com"
     s.homepage = "http://github.com/joshbuddy/chirpstream"
     s.authors = ["Joshua Hull"]
-    s.files = FileList["[A-Z]*", "{lib}/**/*"]
+    s.files = FileList["[A-Z]*", "{lib}/**/*", "{bin}/**/*"]
     s.add_dependency 'eventmachine', ">= 0.12.10"
     s.add_dependency 'em-http-request', ">= 0.2.7"
     s.add_dependency 'yajl-ruby', ">= 0.7.5"

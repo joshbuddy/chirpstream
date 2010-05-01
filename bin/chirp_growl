@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby -rubygems
+
+begin
+  require 'growl'
+rescue LoadError
+  puts "You'll need to install growl\nsudo gem install growl"
+  exit(1)
+end
+
+begin
+  require 'json'
+rescue LoadError
+  puts "You'll need to install json\nsudo gem install json"
+  exit(1)
+end
+
+require File.join(File.dirname(__FILE__), '..', 'lib', 'chirpstream')
+require 'etc'
+require 'fileutils'
+
+FileUtils.mkdir_p(File.join(Etc.getpwuid.dir, '.chirpstream'))
+FileUtils.mkdir_p(File.join(Etc.getpwuid.dir, '.chirpstream', 'cache'))
+
+json_file = File.join(Etc.getpwuid.dir, '.chirpstream', 'user.json')
+cache_dir = File.join(Etc.getpwuid.dir, '.chirpstream', 'cache')
+
+if File.exist?(json_file)
+  data = JSON.parse(File.read(json_file))
+  @username = data['username']
+  @password = data['password']
+else
+  puts "Enter your username:"
+  @username = gets.strip
+  puts "Enter your password:"
+  @password = gets.strip
+  File.open(json_file, 'w') {|f| f << {:username => @username, :password => @password}.to_json}
+end
+
+chirp = Chirpstream.new(@username, @password)
+
+Growl.notify {
+  self.message = 'Starting chirp_growl...'
+  self.title = 'ChirpStreeeeem!'
+  self.image = File.join(File.dirname(__FILE__), '..', 'image', 'bird.png')
+}
+
+chirp.tweet { |t| 
+  t.user.with_profile_image(cache_dir) do |image_path|
+    Growl.notify {
+      self.message = t.text
+      self.title = "@#{t.user.screen_name}"
+      self.image = image_path if image_path
+    }
+  end
+#  g.notify "ruby-growl Notification", "@#{t.user.screen_name}", t.text
+}
+
+chirp.connect
+
+

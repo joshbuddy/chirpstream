@@ -1,3 +1,6 @@
+require 'em-http'
+require 'digest/md5'
+
 class Chirpstream
   class User < TwitterObject
 
@@ -16,6 +19,27 @@ class Chirpstream
     
     def user_loadable_id
       id
+    end
+    
+    def with_profile_image(cache_dir)
+      raise unless loaded?
+      
+      cached_file = File.join(cache_dir, "#{Digest::MD5.hexdigest(profile_image_url)}#{File.extname(profile_image_url)}")
+      
+      if File.exist?(cached_file)
+        yield cached_file
+      else
+        http = EM::HttpRequest.new(profile_image_url).get :head => {'authorization' => [base.username, base.password]}
+        http.callback do
+          if http.response_header.status == 200
+            File.open(cached_file, 'w') {|f| f << http.response}
+            yield cached_file
+          else
+            yield nil
+          end
+        end
+      end
+      
     end
     
   end
