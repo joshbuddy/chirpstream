@@ -68,7 +68,7 @@ class Chirpstream
             @handlers.friend.each{|h| h.call(friend)}
           end
         }
-        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]})
+        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]}, :timeout => 0)
         http.stream { |chunk|
           parser << chunk
         }
@@ -163,7 +163,11 @@ class Chirpstream
         connect
       }
       http.stream { |chunk|
-        parser << chunk
+        begin
+          parser << chunk
+        rescue Yajl::ParseError
+          puts "bad chunk: #{chunk.inspect}"
+        end
       }
     end
   end
