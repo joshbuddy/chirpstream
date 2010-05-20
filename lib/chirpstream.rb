@@ -4,6 +4,9 @@ require 'yajl'
 require 'pp'
 require 'load_path_find'
 
+require 'oauth'
+require 'oauth/client/em_http'
+
 $LOAD_PATH.add_current
 
 require 'chirpstream/twitter_object'
@@ -23,8 +26,9 @@ class Chirpstream
   Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
 
   attr_reader :username, :password
+  attr_accessor :consumer_token, :consumer_secret, :access_token, :access_secret
 
-  def initialize(username, password)
+  def initialize(username=nil, password=nil)
     @username = username
     @password = password
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
@@ -177,6 +181,42 @@ class Chirpstream
       http.errback { |e, err|
         dispatch_reconnect
         connect
+      }
+      http.stream { |chunk|
+        begin
+          parser << chunk
+        rescue Yajl::ParseError
+          puts "bad chunk: #{chunk.inspect}"
+        end
+      }
+    end
+  end
+
+  #
+  # Oauth example
+  #
+  def twitter_oauth_consumer
+    @twitter_oauth_consumer ||= OAuth::Consumer.new(consumer_token, consumer_secret, :site => "http://twitter.com")
+  end
+
+  def twitter_oauth_access_token
+    @twitter_oauth_access_token ||= OAuth::AccessToken.new(twitter_oauth_consumer, access_token, access_secret)
+  end
+
+  def connect_oauth
+    unless EM.reactor_running?
+      EM.run { connect_oauth }
+    else
+      parser = Yajl::Parser.new
+      parser.on_parse_complete = method(:handle_tweet)
+
+      request = EM::HttpRequest.new(@connect_url)
+      http = request.get do |client|
+        twitter_oauth_consumer.sign!(client, twitter_oauth_access_token)
+      end
+      http.errback { |e, err|
+        dispatch_reconnect
+        connect_oauth
       }
       http.stream { |chunk|
         begin
