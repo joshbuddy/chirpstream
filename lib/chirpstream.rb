@@ -9,6 +9,7 @@ $LOAD_PATH.add_current
 require 'chirpstream/twitter_object'
 require 'chirpstream/event'
 require 'chirpstream/event/follow'
+require 'chirpstream/event/direct_message'
 require 'chirpstream/event/retweet'
 require 'chirpstream/event/favorite'
 require 'chirpstream/event/delete'
@@ -19,7 +20,7 @@ class Chirpstream
   
   attr_reader :handlers
   
-  Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect)
+  Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
 
   attr_reader :username, :password
 
@@ -27,7 +28,7 @@ class Chirpstream
     @username = username
     @password = password
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
-    @handlers = Handlers.new([], [], [], [], [], [], [])
+    @handlers = Handlers.new([], [], [], [], [], [], [], [])
     @data = ''
   end
   
@@ -51,6 +52,10 @@ class Chirpstream
     @handlers.retweet << block
   end
   
+  def direct_message(&block)
+    @handlers.direct_message << block
+  end
+
   def delete(&block)
     @handlers.delete << block
   end
@@ -94,6 +99,15 @@ class Chirpstream
     end
   end
   
+  def dispatch_direct_message(data)
+    unless @handlers.direct_message.empty?
+      dm = DirectMessage.new(self, data)
+      dm.load_all { |f|
+        @handlers.direct_message.each{|h| h.call(f)}
+      }
+    end
+  end
+
   def dispatch_favorite(data)
     unless @handlers.favorite.empty?
       favorite = Favorite.new(self, data)
@@ -127,7 +141,9 @@ class Chirpstream
   end
   
   def handle_tweet(parsed_data)
-    if parsed_data['friends']
+    if parsed_data['direct_message']
+      dispatch_direct_message(parsed_data)
+    elsif parsed_data['friends']
       dispatch_friend(parsed_data)
     elsif parsed_data['text']
       dispatch_tweet(parsed_data)

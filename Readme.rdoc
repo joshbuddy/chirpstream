@@ -25,5 +25,6 @@ Wow! It's growling my tweets! How meta.
   chirp.follow {|t| puts "#{t.source.screen_name.foreground(:green)} following #{t.target.screen_name.foreground(:green)}" }
   chirp.favorite {|t| puts "#{t.source.screen_name.foreground(:green)} <3 -> #{t.target_object.text}" }
   chirp.retweet {|t| puts "#{t.source.screen_name.foreground(:green)} RT -> #{t.target_object.text}" }
+  chirp.direct_message {|t| puts "DM : #{t.text} (from #{t.sender.name.foreground(:red)} (#{('@' + t.sender.screen_name).foreground(:green)}))" }
   chirp.connect
 
