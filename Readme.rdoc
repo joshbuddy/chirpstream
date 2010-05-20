@@ -29,6 +29,7 @@ Wow! It's growling my tweets! How meta.
   chirp.connect
 
 == Oauth Usage
+
   chirp = Chirpstream.new
   chirp.consumer_token = "XXX"
   chirp.consumer_secret = "XXX"

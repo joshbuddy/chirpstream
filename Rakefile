@@ -5,7 +5,7 @@ begin
     s.description = s.summary = "Eventmachine-based Chirpstream client"
     s.email = "joshbuddy@gmail.com"
     s.homepage = "http://github.com/joshbuddy/chirpstream"
-    s.authors = ["Joshua Hull"]
+    s.authors = ["Joshua Hull", "Fabien Penso"]
     s.files = FileList["[A-Z]*", "{lib}/**/*", "{bin}/**/*", "{image}/**/*"]
     s.add_dependency 'eventmachine', ">= 0.12.10"
     s.add_dependency 'em-http-request', ">= 0.2.7"
