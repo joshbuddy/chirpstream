@@ -16,7 +16,6 @@ Gem::Specification.new do |s|
   s.executables = ["chirp_growl"]
   s.files = [
     "Gemfile",
-    "Gemfile.lock",
     "Rakefile",
     "Readme.rdoc",
     "VERSION",

@@ -208,6 +208,37 @@ class Chirpstream
     end
   end
 
+	def multi_connect(options)
+    unless EM.reactor_running?
+      EM.run { multi_connect(options) }
+    else
+			users = options[:users]
+			for user in users
+				puts "Connecting with #{user.to_s}"
+				connect_single_user(user)
+			end
+    end
+	end
+
+	def connect_single_user(user)
+		parser = Yajl::Parser.new
+		parser.on_parse_complete = method(:handle_tweet)
+
+		http = new_client(@connect_url, :get, {:access_token => user.twitter_access_token,
+											:secret_token => user.twitter_secret_token})
+		http.errback { |e, err|
+			dispatch_reconnect
+			connect_single_user(user)
+		}
+		http.stream { |chunk|
+			begin
+				parser << chunk
+			rescue Yajl::ParseError
+				puts "bad chunk: #{chunk.inspect}"
+			end
+		}
+	end
+
   #
   # Oauth example
   #
@@ -215,8 +246,10 @@ class Chirpstream
     @twitter_oauth_consumer ||= OAuth::Consumer.new(consumer_token, consumer_secret, :site => "http://twitter.com")
   end
 
-  def twitter_oauth_access_token
-    @twitter_oauth_access_token ||= OAuth::AccessToken.new(twitter_oauth_consumer, access_token, access_secret)
+  def twitter_oauth_access_token(token=nil,secret=nil)
+		token ||= access_token
+		secret ||= access_secret
+    @twitter_oauth_access_token ||= OAuth::AccessToken.new(twitter_oauth_consumer, token, secret)
   end
 
   def new_client(url, method, extras = nil)
@@ -224,7 +257,7 @@ class Chirpstream
     if consumer_token
       request = EM::HttpRequest.new(url)
       request.send(method, options) do |client|
-        twitter_oauth_consumer.sign!(client, twitter_oauth_access_token)
+        twitter_oauth_consumer.sign!(client, twitter_oauth_access_token(options[:access_token],options[:secret_token]))
       end
     else
       http = EM::HttpRequest.new(url).send(method, options.merge(:head => {'authorization' => [@username, @password]}))
