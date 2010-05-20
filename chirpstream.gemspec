@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{chirpstream}
-  s.version = "0.0.5"
+  s.version = "0.0.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Joshua Hull"]
-  s.date = %q{2010-05-01}
+  s.date = %q{2010-05-19}
   s.default_executable = %q{chirp_growl}
   s.description = %q{Eventmachine-based Chirpstream client}
   s.email = %q{joshbuddy@gmail.com}
@@ -24,10 +24,10 @@ Gem::Specification.new do |s|
     "lib/chirpstream.rb",
     "lib/chirpstream/event.rb",
     "lib/chirpstream/event/delete.rb",
+    "lib/chirpstream/event/direct_message.rb",
     "lib/chirpstream/event/favorite.rb",
     "lib/chirpstream/event/follow.rb",
     "lib/chirpstream/event/retweet.rb",
-    "lib/chirpstream/event/direct_message.rb",
     "lib/chirpstream/tweet.rb",
     "lib/chirpstream/twitter_object.rb",
     "lib/chirpstream/user.rb"
