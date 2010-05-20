@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     "lib/chirpstream/event/favorite.rb",
     "lib/chirpstream/event/follow.rb",
     "lib/chirpstream/event/retweet.rb",
+    "lib/chirpstream/event/direct_message.rb",
     "lib/chirpstream/tweet.rb",
     "lib/chirpstream/twitter_object.rb",
     "lib/chirpstream/user.rb"
