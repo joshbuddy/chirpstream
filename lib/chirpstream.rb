@@ -212,7 +212,7 @@ class Chirpstream
       parser.on_parse_complete = method(:handle_tweet)
 
       request = EM::HttpRequest.new(@connect_url)
-      http = request.get do |client|
+      http = request.get(:timeout => 0) do |client|
         twitter_oauth_consumer.sign!(client, twitter_oauth_access_token)
       end
       http.errback { |e, err|
