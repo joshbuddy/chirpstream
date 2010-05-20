@@ -26,7 +26,22 @@ class Chirpstream
   Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
 
   attr_reader :username, :password
-  attr_accessor :consumer_token, :consumer_secret, :access_token, :access_secret
+  attr_accessor :consumer_token, :consumer_secret, :access_token, :access_secret, :fill_in
+
+  def self.basic(username, password, options = nil)
+    chirpstream = new(username, password)
+    chirpstream.fill_in = options[:fill_in] if options && options.key?(:fill_in)
+  end
+
+  def self.oauth(consumer_token, consumer_secret, access_token, access_secret, options = nil)
+    chirpstream = new
+    chirpstream.consumer_token = consumer_token
+    chirpstream.consumer_secret = consumer_secret
+    chirpstream.access_token = access_token
+    chirpstream.access_secret = access_secret
+    chirpstream.fill_in = options[:fill_in] if options && options.key?(:fill_in)
+    chirpstream
+  end
 
   def initialize(username=nil, password=nil, fill_in = true)
     @fill_in = fill_in
