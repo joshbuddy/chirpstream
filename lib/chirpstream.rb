@@ -73,7 +73,7 @@ class Chirpstream
             @handlers.friend.each{|h| h.call(friend)}
           end
         }
-        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]}, :timeout => 0)
+        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]})
         http.stream { |chunk|
           parser << chunk
         }
@@ -173,7 +173,7 @@ class Chirpstream
     else
       parser = Yajl::Parser.new
       parser.on_parse_complete = method(:handle_tweet)
-      http = EM::HttpRequest.new(@connect_url).get :head => {'authorization' => [@username, @password]}
+      http = EM::HttpRequest.new(@connect_url).get :head => {'authorization' => [@username, @password]}, :timeout => 0
       http.errback { |e, err|
         dispatch_reconnect
         connect
