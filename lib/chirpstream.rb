@@ -178,7 +178,7 @@ class Chirpstream
     else
       parser = Yajl::Parser.new
       parser.on_parse_complete = method(:handle_tweet)
-      http = EM::HttpRequest.new(@connect_url).get :head => {'authorization' => [@username, @password]}, :timeout => 0
+      http = new_client(@connect_url, :get)
       http.errback { |e, err|
         dispatch_reconnect
         connect
@@ -204,28 +204,15 @@ class Chirpstream
     @twitter_oauth_access_token ||= OAuth::AccessToken.new(twitter_oauth_consumer, access_token, access_secret)
   end
 
-  def connect_oauth
-    unless EM.reactor_running?
-      EM.run { connect_oauth }
-    else
-      parser = Yajl::Parser.new
-      parser.on_parse_complete = method(:handle_tweet)
-
-      request = EM::HttpRequest.new(@connect_url)
-      http = request.get(:timeout => 0) do |client|
+  def new_client(url, method, extras = nil)
+    options = extras ? extras.merge(:timeout => 0) : {:timeout => 0}
+    if consumer_token
+      request = EM::HttpRequest.new(url)
+      request.send(method, options) do |client|
         twitter_oauth_consumer.sign!(client, twitter_oauth_access_token)
       end
-      http.errback { |e, err|
-        dispatch_reconnect
-        connect_oauth
-      }
-      http.stream { |chunk|
-        begin
-          parser << chunk
-        rescue Yajl::ParseError
-          puts "bad chunk: #{chunk.inspect}"
-        end
-      }
+    else
+      http = EM::HttpRequest.new(url).send(method, options.merge(:head => {'authorization' => [@username, @password]}))
     end
   end
 end
