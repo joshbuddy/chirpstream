@@ -99,7 +99,7 @@ class TwitterObject
         data[id] = parsed
         load_tweet_data(ids, data, &block)
       }
-      http = base.new_client("http://api.twitter.com/1/statuses/show/%s.json" % id, :get)
+      http = base.get_connection("http://api.twitter.com/1/statuses/show/%s.json" % id, :get)
       http.stream { |chunk|
         parser << chunk
       }
@@ -126,7 +126,7 @@ class TwitterObject
       end
       yield
     }
-    http = base.new_client("http://api.twitter.com/1/users/lookup.json", :post, :body => {'user_id' => ids.join(',')})
+    http = base.get_connection("http://api.twitter.com/1/users/lookup.json", :post, :body => {'user_id' => ids.join(',')})
     http.stream { |chunk|
       parser << chunk
     }

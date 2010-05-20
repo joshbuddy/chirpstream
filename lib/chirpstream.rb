@@ -18,40 +18,27 @@ require 'chirpstream/event/favorite'
 require 'chirpstream/event/delete'
 require 'chirpstream/user'
 require 'chirpstream/tweet'
+require 'chirpstream/connect'
 
 class Chirpstream
   
+  include Connect
+
   attr_reader :handlers
   
   Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
 
   attr_reader :username, :password
-  attr_accessor :consumer_token, :consumer_secret, :access_token, :access_secret, :fill_in
+  attr_reader :consumer_token, :consumer_secret, :fill_in
 
-  def self.basic(username, password, options = nil)
-    chirpstream = new(username, password)
-    chirpstream.fill_in = options[:fill_in] if options && options.key?(:fill_in)
-  end
-
-  def self.oauth(consumer_token, consumer_secret, access_token, access_secret, options = nil)
-    chirpstream = new
-    chirpstream.consumer_token = consumer_token
-    chirpstream.consumer_secret = consumer_secret
-    chirpstream.access_token = access_token
-    chirpstream.access_secret = access_secret
-    chirpstream.fill_in = options[:fill_in] if options && options.key?(:fill_in)
-    chirpstream
-  end
-
-  def initialize(username=nil, password=nil, fill_in = true)
-    @fill_in = fill_in
-    @username = username
-    @password = password
+  def initialize(options = nil)
+    @consumer_token = options && options[:consumer_token]
+    @consumer_secret = options && options[:consumer_secret]
+    @fill_in = options && options[:fill_in]
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
     @handlers = Handlers.new([], [], [], [], [], [], [], [])
-    @data = ''
   end
-  
+
   def friend(&block)
     @handlers.friend << block
   end
@@ -84,7 +71,7 @@ class Chirpstream
     @handlers.reconnect << block
   end
   
-  def dispatch_friend(data)
+  def dispatch_friend(user, data)
     unless @handlers.friend.empty?
       data['friends'].each_slice(100) do |friend_ids|
         parser = Yajl::Parser.new
@@ -101,166 +88,115 @@ class Chirpstream
     end
   end
   
-  def dispatch_tweet(data)
+  def dispatch_tweet(user, data)
     unless @handlers.tweet.empty?
       tweet = Tweet.new(self, data)
-      @fill_in ? tweet.load_all { |t|
-        @handlers.tweet.each{|h| h.call(tweet)}
-      } : @handlers.tweet.each{|h| h.call(tweet)}
+      @fill_in ? tweet.load_all { |f|
+        @handlers.tweet.each{|h| h.call(f, user)}
+      } : @handlers.tweet.each{|h| h.call(tweet, user)}
     end
   end
   
-  def dispatch_follow(data)
+  def dispatch_follow(user, data)
     unless @handlers.follow.empty?
       follow = Follow.new(self, data)
       @fill_in ? follow.load_all { |f|
-        @handlers.follow.each{|h| h.call(f)}
-      } : @handlers.follow.each{|h| h.call(follow)}
+        @handlers.follow.each{|h| h.call(f, user)}
+      } : @handlers.follow.each{|h| h.call(follow, user)}
     end
   end
   
-  def dispatch_direct_message(data)
+  def dispatch_direct_message(user, data)
     unless @handlers.direct_message.empty?
       dm = DirectMessage.new(self, data)
       @fill_in ? dm.load_all { |f|
-        @handlers.direct_message.each{|h| h.call(f)}
-      } : @handlers.direct_message.each{|h| h.call(dm)}
+        @handlers.direct_message.each{|h| h.call(f, user)}
+      } : @handlers.direct_message.each{|h| h.call(dm, user)}
     end
   end
 
-  def dispatch_favorite(data)
+  def dispatch_favorite(user, data)
     unless @handlers.favorite.empty?
       favorite = Favorite.new(self, data)
       @fill_in ? favorite.load_all { |f|
-        @handlers.favorite.each{|h| h.call(f)}
-      } : @handlers.favorite.each{|h| h.call(favorite)}
+        @handlers.favorite.each{|h| h.call(f, user)}
+      } : @handlers.favorite.each{|h| h.call(favorite, user)}
     end
   end
   
-  def dispatch_retweet(data)
+  def dispatch_retweet(user, data)
     unless @handlers.retweet.empty?
       retweet = Retweet.new(self, data)
       @fill_in ? retweet.load_all { |f|
-        @handlers.retweet.each{|h| h.call(f)}
-      } : @handlers.retweet.each{|h| h.call(retweet)}
+        @handlers.retweet.each{|h| h.call(f, user)}
+      } : @handlers.retweet.each{|h| h.call(retweet, user)}
     end
   end
     
-  def dispatch_delete(data)
+  def dispatch_delete(user, data)
     unless @handlers.delete.empty?
       delete = Delete.new(self, data)
       @fill_in ? delete.load_all { |f|
-        @handlers.delete.each{|h| h.call(f)}
-      } : @handlers.delete.each{|h| h.call(delete)}
+        @handlers.delete.each{|h| h.call(f, user)}
+      } : @handlers.delete.each{|h| h.call(delete, user)}
     end
   end
   
-  def dispatch_reconnect
+  def dispatch_reconnect(user)
     return if @handlers.reconnect.empty?
-    @handlers.reconnect.each{|h| h.call}
+    @handlers.reconnect.each{|h| h.call(user)}
   end
   
-  def handle_tweet(parsed_data)
-    if parsed_data['direct_message']
-      dispatch_direct_message(parsed_data)
-    elsif parsed_data['friends']
-      dispatch_friend(parsed_data)
-    elsif parsed_data['text']
-      dispatch_tweet(parsed_data)
-    elsif parsed_data['event']
-      case parsed_data['event']
-      when 'follow'
-        dispatch_follow(parsed_data)
-      when 'favorite'
-        dispatch_favorite(parsed_data)
-      when 'retweet'
-        dispatch_retweet(parsed_data)
+  def data_handler(user)
+    proc{|parsed_data|
+      if parsed_data['direct_message']
+        dispatch_direct_message(user, parsed_data)
+      elsif parsed_data['friends']
+        dispatch_friend(user, parsed_data)
+      elsif parsed_data['text']
+        dispatch_tweet(user, parsed_data)
+      elsif parsed_data['event']
+        case parsed_data['event']
+        when 'follow'
+          dispatch_follow(user, parsed_data)
+        when 'favorite'
+          dispatch_favorite(user, parsed_data)
+        when 'retweet'
+          dispatch_retweet(user, parsed_data)
+        else
+          puts "weird event"
+          pp parsed_data
+        end
+      elsif parsed_data['delete']
+        dispatch_delete(user, parsed_data)
       else
-        puts "weird event"
+        puts "i didn't know what to do with this!"
         pp parsed_data
       end
-    elsif parsed_data['delete']
-      dispatch_delete(parsed_data)
-    else
-      puts "i didn't know what to do with this!"
-      pp parsed_data
-    end
+    }
   end
   
-  def connect
+  def connect(*users)
     unless EM.reactor_running?
-      EM.run { connect }
+      EM.run { connect(*users) }
     else
-      parser = Yajl::Parser.new
-      parser.on_parse_complete = method(:handle_tweet)
-      http = new_client(@connect_url, :get)
-      http.errback { |e, err|
-        dispatch_reconnect
-        connect
-      }
-      http.stream { |chunk|
-        begin
-          parser << chunk
-        rescue Yajl::ParseError
-          puts "bad chunk: #{chunk.inspect}"
-        end
-      }
-    end
-  end
-
-	def multi_connect(options)
-    unless EM.reactor_running?
-      EM.run { multi_connect(options) }
-    else
-			users = options[:users]
-			for user in users
-				puts "Connecting with #{user.to_s}"
-				connect_single_user(user)
-			end
-    end
-	end
-
-	def connect_single_user(user)
-		parser = Yajl::Parser.new
-		parser.on_parse_complete = method(:handle_tweet)
-
-		http = new_client(@connect_url, :get, {:access_token => user.twitter_access_token,
-											:secret_token => user.twitter_secret_token})
-		http.errback { |e, err|
-			dispatch_reconnect
-			connect_single_user(user)
-		}
-		http.stream { |chunk|
-			begin
-				parser << chunk
-			rescue Yajl::ParseError
-				puts "bad chunk: #{chunk.inspect}"
-			end
-		}
-	end
-
-  #
-  # Oauth example
-  #
-  def twitter_oauth_consumer
-    @twitter_oauth_consumer ||= OAuth::Consumer.new(consumer_token, consumer_secret, :site => "http://twitter.com")
-  end
-
-  def twitter_oauth_access_token(token=nil,secret=nil)
-		token ||= access_token
-		secret ||= access_secret
-    @twitter_oauth_access_token ||= OAuth::AccessToken.new(twitter_oauth_consumer, token, secret)
-  end
-
-  def new_client(url, method, extras = nil)
-    options = extras ? extras.merge(:timeout => 0) : {:timeout => 0}
-    if consumer_token
-      request = EM::HttpRequest.new(url)
-      request.send(method, options) do |client|
-        twitter_oauth_consumer.sign!(client, twitter_oauth_access_token(options[:access_token],options[:secret_token]))
+      users.each do |user|
+        parser = Yajl::Parser.new
+        parser.on_parse_complete = data_handler(user)
+        http = get_connection(user, @connect_url, :get)
+        http.errback { |e, err|
+          dispatch_reconnect
+          connect
+        }
+        http.stream { |chunk|
+          begin
+            parser << chunk
+          rescue Yajl::ParseError
+            p $!
+            puts "bad chunk: #{chunk.inspect}"
+          end
+        }
       end
-    else
-      http = EM::HttpRequest.new(url).send(method, options.merge(:head => {'authorization' => [@username, @password]}))
     end
   end
 end
