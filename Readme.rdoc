@@ -19,7 +19,7 @@ Wow! It's growling my tweets! How meta.
   require 'chirpstream'
   require 'rainbow'
   
-  chirp = Chirpstream.new('joshbuddy', 'xxxxxxxx')
+  chirp = Chirpstream.basic('joshbuddy', 'xxxxxxxx')
   chirp.reconnect{ puts "reconnecting..." }
   chirp.tweet {|t| puts "#{t.text} (from #{t.user.name.foreground(:red)} (#{('@' + t.user.screen_name).foreground(:green)}))" }
   chirp.follow {|t| puts "#{t.source.screen_name.foreground(:green)} following #{t.target.screen_name.foreground(:green)}" }
@@ -30,15 +30,11 @@ Wow! It's growling my tweets! How meta.
 
 == Oauth Usage
 
-  chirp = Chirpstream.new
-  chirp.consumer_token = "XXX"
-  chirp.consumer_secret = "XXX"
-  chirp.access_token = "XXX"
-  chirp.access_secret = "XXX"
+  chirp = Chirpstream.oauth(consumer_token, consumer_secret, access_token, access_secret)
   chirp.reconnect{ puts "reconnecting..." }
   chirp.tweet {|t| puts "#{t.text} (from #{t.user.name.foreground(:red)} (#{('@' + t.user.screen_name).foreground(:green)}))" }
   chirp.follow {|t| puts "#{t.source.screen_name.foreground(:green)} following #{t.target.screen_name.foreground(:green)}" }
   chirp.favorite {|t| puts "#{t.source.screen_name.foreground(:green)} <3 -> #{t.target_object.text}" }
   chirp.retweet {|t| puts "#{t.source.screen_name.foreground(:green)} RT -> #{t.target_object.text}" }
   chirp.direct_message {|t| puts "DM : #{t.text} (from #{t.sender.name.foreground(:red)} (#{('@' + t.sender.screen_name).foreground(:green)}))" }
-  chirp.connect_oauth
+  chirp.connect
