@@ -41,27 +41,27 @@ Wow! It's growling my tweets! How meta.
 
 == Multi User Usage
 
-class User
-	attr_accessor :twitter_access_token, :twitter_secret_token
-	def initialize(access_token,secret_token)
-		@twitter_access_token = access_token
-		@twitter_secret_token = secret_token
-	end
-end
-
-chirp = Chirpstream.new(nil,nil,false)
-
-chirp.consumer_token = "XXX"
-chirp.consumer_secret = "XXX"
-
-chirp.reconnect{ puts "reconnecting..." }
-chirp.tweet {|t| puts "#{t.text} (from #{t.user.name.foreground(:red)} (#{('@' + t.user.screen_name).foreground(:green)}))" }
-chirp.follow {|t| puts "#{t.source.screen_name.foreground(:green)} following #{t.target.screen_name.foreground(:green)}" }
-chirp.favorite {|t| puts "#{t.source.screen_name.foreground(:green)} <3 -> #{t.target_object.text}" }
-chirp.retweet {|t| puts "#{t.source.screen_name.foreground(:green)} RT -> #{t.target_object.text}" }
-chirp.direct_message {|t| puts "DM : #{t.text} (from #{t.sender.name.foreground(:red)} (#{('@' + t.sender.screen_name).foreground(:green)}))" }
-
-user1 = User.new('XXX', "XXX")
-user2 = User.new('XXX', 'XXX')
-
-chirp.multi_connect(:users => [user1, user2])
+  class User
+  	attr_accessor :twitter_access_token, :twitter_secret_token
+  	def initialize(access_token,secret_token)
+  		@twitter_access_token = access_token
+  		@twitter_secret_token = secret_token
+  	end
+  end
+  
+  chirp = Chirpstream.new(nil,nil,false)
+  
+  chirp.consumer_token = "XXX"
+  chirp.consumer_secret = "XXX"
+  
+  chirp.reconnect{ puts "reconnecting..." }
+  chirp.tweet {|t| puts "#{t.text} (from #{t.user.name.foreground(:red)} (#{('@' + t.user.screen_name).foreground(:green)}))" }
+  chirp.follow {|t| puts "#{t.source.screen_name.foreground(:green)} following #{t.target.screen_name.foreground(:green)}" }
+  chirp.favorite {|t| puts "#{t.source.screen_name.foreground(:green)} <3 -> #{t.target_object.text}" }
+  chirp.retweet {|t| puts "#{t.source.screen_name.foreground(:green)} RT -> #{t.target_object.text}" }
+  chirp.direct_message {|t| puts "DM : #{t.text} (from #{t.sender.name.foreground(:red)} (#{('@' + t.sender.screen_name).foreground(:green)}))" }
+  
+  user1 = User.new('XXX', "XXX")
+  user2 = User.new('XXX', 'XXX')
+  
+  chirp.multi_connect(:users => [user1, user2])
