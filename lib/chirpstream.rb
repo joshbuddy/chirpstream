@@ -28,7 +28,8 @@ class Chirpstream
   attr_reader :username, :password
   attr_accessor :consumer_token, :consumer_secret, :access_token, :access_secret
 
-  def initialize(username=nil, password=nil)
+  def initialize(username=nil, password=nil, fill_in = true)
+    @fill_in = fill_in
     @username = username
     @password = password
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
@@ -88,54 +89,54 @@ class Chirpstream
   def dispatch_tweet(data)
     unless @handlers.tweet.empty?
       tweet = Tweet.new(self, data)
-      tweet.load_all { |t|
+      @fill_in ? tweet.load_all { |t|
         @handlers.tweet.each{|h| h.call(tweet)}
-      }
+      } : @handlers.tweet.each{|h| h.call(tweet)}
     end
   end
   
   def dispatch_follow(data)
     unless @handlers.follow.empty?
       follow = Follow.new(self, data)
-      follow.load_all { |f|
+      @fill_in ? follow.load_all { |f|
         @handlers.follow.each{|h| h.call(f)}
-      }
+      } : @handlers.follow.each{|h| h.call(follow)}
     end
   end
   
   def dispatch_direct_message(data)
     unless @handlers.direct_message.empty?
       dm = DirectMessage.new(self, data)
-      dm.load_all { |f|
+      @fill_in ? dm.load_all { |f|
         @handlers.direct_message.each{|h| h.call(f)}
-      }
+      } : @handlers.direct_message.each{|h| h.call(dm)}
     end
   end
 
   def dispatch_favorite(data)
     unless @handlers.favorite.empty?
       favorite = Favorite.new(self, data)
-      favorite.load_all { |f|
+      @fill_in ? favorite.load_all { |f|
         @handlers.favorite.each{|h| h.call(f)}
-      }
+      } : @handlers.favorite.each{|h| h.call(favorite)}
     end
   end
   
   def dispatch_retweet(data)
     unless @handlers.retweet.empty?
       retweet = Retweet.new(self, data)
-      retweet.load_all { |f|
+      @fill_in ? retweet.load_all { |f|
         @handlers.retweet.each{|h| h.call(f)}
-      }
+      } : @handlers.retweet.each{|h| h.call(retweet)}
     end
   end
     
   def dispatch_delete(data)
     unless @handlers.delete.empty?
       delete = Delete.new(self, data)
-      delete.load_all { |f|
+      @fill_in ? delete.load_all { |f|
         @handlers.delete.each{|h| h.call(f)}
-      }
+      } : @handlers.delete.each{|h| h.call(delete)}
     end
   end
   

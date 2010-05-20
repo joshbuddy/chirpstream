@@ -8,14 +8,13 @@ Gem::Specification.new do |s|
   s.version = "0.0.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Joshua Hull"]
-  s.date = %q{2010-05-19}
+  s.authors = ["Joshua Hull", "Fabien Penso"]
+  s.date = %q{2010-05-20}
   s.default_executable = %q{chirp_growl}
   s.description = %q{Eventmachine-based Chirpstream client}
   s.email = %q{joshbuddy@gmail.com}
   s.executables = ["chirp_growl"]
   s.files = [
-    "Gemfile",
     "Rakefile",
     "Readme.rdoc",
     "VERSION",
@@ -47,17 +46,20 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<em-http-request>, [">= 0.2.7"])
       s.add_runtime_dependency(%q<yajl-ruby>, [">= 0.7.5"])
       s.add_runtime_dependency(%q<load_path_find>, [">= 0.0.5"])
+      s.add_runtime_dependency(%q<oauth>, [">= 0.4.0"])
     else
       s.add_dependency(%q<eventmachine>, [">= 0.12.10"])
       s.add_dependency(%q<em-http-request>, [">= 0.2.7"])
       s.add_dependency(%q<yajl-ruby>, [">= 0.7.5"])
       s.add_dependency(%q<load_path_find>, [">= 0.0.5"])
+      s.add_dependency(%q<oauth>, [">= 0.4.0"])
     end
   else
     s.add_dependency(%q<eventmachine>, [">= 0.12.10"])
     s.add_dependency(%q<em-http-request>, [">= 0.2.7"])
     s.add_dependency(%q<yajl-ruby>, [">= 0.7.5"])
     s.add_dependency(%q<load_path_find>, [">= 0.0.5"])
+    s.add_dependency(%q<oauth>, [">= 0.4.0"])
   end
 end
 

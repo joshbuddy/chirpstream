@@ -2,5 +2,6 @@
 source :gemcutter
 gem "eventmachine", ">= 0.12.10"
 gem "em-http-request", ">= 0.2.7"
-gem "json", ">= 1.2.4"
+gem "yajl-ruby", ">= 0.7.5"
 gem "load_path_find", ">= 0.0.5"
+gem "oauth", ">= 0.4.0"
