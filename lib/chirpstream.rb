@@ -28,7 +28,6 @@ class Chirpstream
   
   Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
 
-  attr_reader :username, :password
   attr_reader :consumer_token, :consumer_secret, :fill_in
 
   def initialize(options = nil)
