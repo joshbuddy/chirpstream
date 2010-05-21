@@ -91,7 +91,7 @@ class Chirpstream
   def dispatch_tweet(user, data)
     unless @handlers.tweet.empty?
       tweet = Tweet.new(self, data)
-      @fill_in ? tweet.load_all { |f|
+      @fill_in ? tweet.load_all(user) { |f|
         @handlers.tweet.each{|h| h.call(f, user)}
       } : @handlers.tweet.each{|h| h.call(tweet, user)}
     end
@@ -100,7 +100,7 @@ class Chirpstream
   def dispatch_follow(user, data)
     unless @handlers.follow.empty?
       follow = Follow.new(self, data)
-      @fill_in ? follow.load_all { |f|
+      @fill_in ? follow.load_all(user) { |f|
         @handlers.follow.each{|h| h.call(f, user)}
       } : @handlers.follow.each{|h| h.call(follow, user)}
     end
@@ -109,7 +109,7 @@ class Chirpstream
   def dispatch_direct_message(user, data)
     unless @handlers.direct_message.empty?
       dm = DirectMessage.new(self, data)
-      @fill_in ? dm.load_all { |f|
+      @fill_in ? dm.load_all(user) { |f|
         @handlers.direct_message.each{|h| h.call(f, user)}
       } : @handlers.direct_message.each{|h| h.call(dm, user)}
     end
@@ -118,7 +118,7 @@ class Chirpstream
   def dispatch_favorite(user, data)
     unless @handlers.favorite.empty?
       favorite = Favorite.new(self, data)
-      @fill_in ? favorite.load_all { |f|
+      @fill_in ? favorite.load_all(user) { |f|
         @handlers.favorite.each{|h| h.call(f, user)}
       } : @handlers.favorite.each{|h| h.call(favorite, user)}
     end
@@ -127,7 +127,7 @@ class Chirpstream
   def dispatch_retweet(user, data)
     unless @handlers.retweet.empty?
       retweet = Retweet.new(self, data)
-      @fill_in ? retweet.load_all { |f|
+      @fill_in ? retweet.load_all(user) { |f|
         @handlers.retweet.each{|h| h.call(f, user)}
       } : @handlers.retweet.each{|h| h.call(retweet, user)}
     end
@@ -136,7 +136,7 @@ class Chirpstream
   def dispatch_delete(user, data)
     unless @handlers.delete.empty?
       delete = Delete.new(self, data)
-      @fill_in ? delete.load_all { |f|
+      @fill_in ? delete.load_all(user) { |f|
         @handlers.delete.each{|h| h.call(f, user)}
       } : @handlers.delete.each{|h| h.call(delete, user)}
     end
