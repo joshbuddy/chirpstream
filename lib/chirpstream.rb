@@ -179,23 +179,27 @@ class Chirpstream
     unless EM.reactor_running?
       EM.run { connect(*users) }
     else
-      users.each do |user|
-        parser = Yajl::Parser.new
-        parser.on_parse_complete = data_handler(user)
-        http = get_connection(user, @connect_url, :get)
-        http.errback { |e, err|
-          dispatch_reconnect
-          connect
-        }
-        http.stream { |chunk|
-          begin
-            parser << chunk
-          rescue Yajl::ParseError
-            p $!
-            puts "bad chunk: #{chunk.inspect}"
-          end
-        }
+      users.each do |user, index|
+        connect_single(user)
       end
     end
+  end
+
+  def connect_single(user)
+    parser = Yajl::Parser.new
+    parser.on_parse_complete = data_handler(user)
+    http = get_connection(user, @connect_url, :get)
+    http.errback { |e, err|
+      dispatch_reconnect
+      connect
+    }
+    http.stream { |chunk|
+      begin
+        parser << chunk
+      rescue Yajl::ParseError
+        p $!
+        puts "bad chunk: #{chunk.inspect}"
+      end
+    }
   end
 end
