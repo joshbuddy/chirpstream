@@ -70,7 +70,7 @@ class TwitterObject
           end
         end
       end
-      get_tweet_data(user, tweet_ids.values) { |tweet_data|
+      get_tweet_data(loading_user, tweet_ids.values) { |tweet_data|
         tweet_ids.each{|k,v| self.send(:"#{k}=", tweet_data[v])}
         user_data = get_user_data(loading_user, user_ids.values) { |user_data|
           user_ids.each{|k,v| self.send(:"#{k}=", user_data[v])}
