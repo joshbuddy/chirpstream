@@ -21,7 +21,7 @@ class Chirpstream
       id
     end
     
-    def with_profile_image(cache_dir)
+    def with_profile_image(loading_user, cache_dir)
       raise unless loaded?
       
       cached_file = File.join(cache_dir, "#{Digest::MD5.hexdigest(profile_image_url)}#{File.extname(profile_image_url)}")
@@ -29,7 +29,7 @@ class Chirpstream
       if File.exist?(cached_file)
         yield cached_file
       else
-        http = EM::HttpRequest.new(profile_image_url).get :head => {'authorization' => [base.username, base.password]}
+        http = base.get_connection(loading_user, profile_image_url, :get)
         http.callback do
           if http.response_header.status == 200
             File.open(cached_file, 'w') {|f| f << http.response}

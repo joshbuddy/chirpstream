@@ -44,8 +44,8 @@ Growl.notify {
   self.image = File.join(File.dirname(__FILE__), '..', 'image', 'bird.png')
 }
 
-chirp.tweet { |t, u| 
-  t.user.with_profile_image(cache_dir) do |image_path|
+chirp.on_tweet { |t, u| 
+  t.user.with_profile_image(u, cache_dir) do |image_path|
     Growl.notify {
       self.message = t.text
       self.title = "@#{t.user.screen_name}"

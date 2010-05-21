@@ -15,6 +15,7 @@ require 'chirpstream/event/follow'
 require 'chirpstream/event/direct_message'
 require 'chirpstream/event/retweet'
 require 'chirpstream/event/favorite'
+require 'chirpstream/event/unfavorite'
 require 'chirpstream/event/delete'
 require 'chirpstream/user'
 require 'chirpstream/tweet'
@@ -26,7 +27,7 @@ class Chirpstream
 
   attr_reader :handlers
   
-  Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :retweet, :delete, :reconnect, :direct_message)
+  Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :unfavorite, :retweet, :delete, :reconnect, :connect, :direct_message)
 
   attr_reader :consumer_token, :consumer_secret, :fill_in
 
@@ -35,39 +36,47 @@ class Chirpstream
     @consumer_secret = options && options[:consumer_secret]
     @fill_in = options && options[:fill_in]
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
-    @handlers = Handlers.new([], [], [], [], [], [], [], [])
+    @handlers = Handlers.new([], [], [], [], [], [], [], [], [], [])
   end
 
-  def friend(&block)
+  def on_friend(&block)
     @handlers.friend << block
   end
   
-  def tweet(&block)
+  def on_tweet(&block)
     @handlers.tweet << block
   end
   
-  def follow(&block)
+  def on_follow(&block)
     @handlers.follow << block
   end
   
-  def favorite(&block)
+  def on_favorite(&block)
     @handlers.favorite << block
   end
   
-  def retweet(&block)
+  def on_unfavorite(&block)
+    @handlers.unfavorite << block
+  end
+  
+  def on_retweet(&block)
     @handlers.retweet << block
   end
   
-  def direct_message(&block)
+  def on_direct_message(&block)
     @handlers.direct_message << block
   end
 
-  def delete(&block)
+  def on_delete(&block)
     @handlers.delete << block
   end
   
-  def reconnect(&block)
+  def on_reconnect(&block)
     @handlers.reconnect << block
+  end
+  
+  def on_connect(&block)
+    @handlers.connect << block
   end
   
   def dispatch_friend(user, data)
@@ -79,8 +88,8 @@ class Chirpstream
             @handlers.friend.each{|h| h.call(friend)}
           end
         }
-        friend_http = EM::HttpRequest.new("http://api.twitter.com/1/users/lookup.json").post(:body => {'user_id' => friend_ids.join(',')}, :head => {'authorization' => [@username, @password]})
-        http.stream { |chunk|
+        friend_http = get_connection(user, "http://api.twitter.com/1/users/lookup.json", :post, :body => {'user_id' => friend_ids.join(',')})
+        friend_http.stream { |chunk|
           parser << chunk
         }
       end
@@ -123,6 +132,15 @@ class Chirpstream
     end
   end
   
+  def dispatch_unfavorite(user, data)
+    unless @handlers.unfavorite.empty?
+      unfavorite = Unfavorite.new(self, data)
+      @fill_in ? unfavorite.load_all(user) { |f|
+        @handlers.unfavorite.each{|h| h.call(f, user)}
+      } : @handlers.unfavorite.each{|h| h.call(unfavorite, user)}
+    end
+  end
+  
   def dispatch_retweet(user, data)
     unless @handlers.retweet.empty?
       retweet = Retweet.new(self, data)
@@ -146,6 +164,12 @@ class Chirpstream
     @handlers.reconnect.each{|h| h.call(user)}
   end
   
+  def dispatch_connect(user)
+    while h = @handlers.connect.shift
+      h.call(user)
+    end
+  end
+  
   def data_handler(user)
     Proc.new{|parsed_data|
       if parsed_data['direct_message']
@@ -160,6 +184,8 @@ class Chirpstream
           dispatch_follow(user, parsed_data)
         when 'favorite'
           dispatch_favorite(user, parsed_data)
+        when 'unfavorite'
+          dispatch_unfavorite(user, parsed_data)
         when 'retweet'
           dispatch_retweet(user, parsed_data)
         else
@@ -190,10 +216,11 @@ class Chirpstream
     parser.on_parse_complete = data_handler(user)
     http = get_connection(user, @connect_url, :get)
     http.errback { |e, err|
-      dispatch_reconnect
+      dispatch_reconnect(user)
       connect
     }
     http.stream { |chunk|
+      dispatch_connect(user)
       begin
         parser << chunk
       rescue Yajl::ParseError
