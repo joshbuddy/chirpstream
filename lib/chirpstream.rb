@@ -147,7 +147,7 @@ class Chirpstream
   end
   
   def data_handler(user)
-    proc{|parsed_data|
+    Proc.new{|parsed_data|
       if parsed_data['direct_message']
         dispatch_direct_message(user, parsed_data)
       elsif parsed_data['friends']

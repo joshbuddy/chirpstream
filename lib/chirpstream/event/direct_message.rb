@@ -5,6 +5,7 @@ class Chirpstream
   
     attr_accessor *ATTRS
     user_writer :sender
+    user_writer :recipient
   
 		def initialize(base, data = nil)
 			@base = base
