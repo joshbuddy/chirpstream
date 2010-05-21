@@ -36,7 +36,7 @@ else
   File.open(json_file, 'w') {|f| f << {:username => @username, :password => @password}.to_json}
 end
 
-chirp = Chirpstream.new(@username, @password)
+chirp = Chirpstream.new
 
 Growl.notify {
   self.message = 'Starting chirp_growl...'
@@ -44,7 +44,7 @@ Growl.notify {
   self.image = File.join(File.dirname(__FILE__), '..', 'image', 'bird.png')
 }
 
-chirp.tweet { |t| 
+chirp.tweet { |t, u| 
   t.user.with_profile_image(cache_dir) do |image_path|
     Growl.notify {
       self.message = t.text
@@ -54,6 +54,6 @@ chirp.tweet { |t|
   end
 }
 
-chirp.connect
+chirp.connect(Chirpstream::Connect::User.basic(@username, @password))
 
 

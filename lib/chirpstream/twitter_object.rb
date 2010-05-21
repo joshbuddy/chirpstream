@@ -47,14 +47,14 @@ class TwitterObject
     const_get(:ATTRS)
   end
   
-  def load_all(&block)
+  def load_all(user, &block)
     attrs = self.class.attrs
     if respond_to?(:loaded?) && !loaded?
       if respond_to?(:user_loadable_id)
-        from_json(get_user_data(user_loadable_id)[user_loadable_id])
+        from_json(get_user_data(user, user_loadable_id)[user_loadable_id])
         load_all(&block)
       elsif respond_to?(:tweet_loadable_id)
-        from_json(get_tweet_data(tweet_loadable_id)[tweet_loadable_id])
+        from_json(get_tweet_data(user, tweet_loadable_id)[tweet_loadable_id])
         load_all(&block)
       end
     else
@@ -70,9 +70,9 @@ class TwitterObject
           end
         end
       end
-      get_tweet_data(tweet_ids.values) { |tweet_data|
+      get_tweet_data(user, tweet_ids.values) { |tweet_data|
         tweet_ids.each{|k,v| self.send(:"#{k}=", tweet_data[v])}
-        user_data = get_user_data(user_ids.values) { |user_data|
+        user_data = get_user_data(user, user_ids.values) { |user_data|
           user_ids.each{|k,v| self.send(:"#{k}=", user_data[v])}
           yield self
         }
@@ -81,17 +81,17 @@ class TwitterObject
     
   end
   
-  def get_tweet_data(ids)
+  def get_tweet_data(user, ids)
     ids = Array(ids).uniq
     data = {}
     if ids.empty?
       yield data
     else
-      load_tweet_data(ids, data) { yield data }
+      load_tweet_data(user, ids, data) { yield data }
     end
   end
   
-  def load_tweet_data(ids, data, &block)
+  def load_tweet_data(user, ids, data, &block)
     id = ids.shift
     if (id)
       parser = Yajl::Parser.new
@@ -99,7 +99,7 @@ class TwitterObject
         data[id] = parsed
         load_tweet_data(ids, data, &block)
       }
-      http = base.get_connection("http://api.twitter.com/1/statuses/show/%s.json" % id, :get)
+      http = base.get_connection(user, "http://api.twitter.com/1/statuses/show/%s.json" % id, :get)
       http.stream { |chunk|
         parser << chunk
       }
@@ -108,17 +108,17 @@ class TwitterObject
     end
   end
   
-  def get_user_data(ids)
+  def get_user_data(user, ids)
     ids = Array(ids).uniq
     data = {}
     if ids.empty?
       yield data
     else
-      load_user_data(ids, data) { yield data }
+      load_user_data(user, ids, data) { yield data }
     end
   end
   
-  def load_user_data(ids, data)
+  def load_user_data(user, ids, data)
     parser = Yajl::Parser.new
     parser.on_parse_complete = proc { |parsed|
       parsed.each do |user|
@@ -126,7 +126,7 @@ class TwitterObject
       end
       yield
     }
-    http = base.get_connection("http://api.twitter.com/1/users/lookup.json", :post, :body => {'user_id' => ids.join(',')})
+    http = base.get_connection(user, "http://api.twitter.com/1/users/lookup.json", :post, :body => {'user_id' => ids.join(',')})
     http.stream { |chunk|
       parser << chunk
     }
