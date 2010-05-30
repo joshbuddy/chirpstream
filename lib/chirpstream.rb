@@ -27,7 +27,7 @@ class Chirpstream
 
   attr_reader :handlers
   
-  Handlers = Struct.new(:friend, :tweet, :follow, :favorite, :unfavorite, :retweet, :delete, :reconnect, :connect, :direct_message)
+  Handlers = Struct.new(:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :reconnect, :connect, :direct_message, :block, :unblock)
 
   attr_reader :consumer_token, :consumer_secret, :fill_in
 
@@ -36,7 +36,7 @@ class Chirpstream
     @consumer_secret = options && options[:consumer_secret]
     @fill_in = options && options[:fill_in]
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
-    @handlers = Handlers.new([], [], [], [], [], [], [], [], [], [])
+    @handlers = Handlers.new([], [], [], [], [], [], [], [], [], [], [], [], [])
   end
 
   def on_friend(&block)
@@ -48,6 +48,10 @@ class Chirpstream
   end
   
   def on_follow(&block)
+    @handlers.follow << block
+  end
+  
+  def on_unfollow(&block)
     @handlers.follow << block
   end
   
@@ -69,6 +73,14 @@ class Chirpstream
 
   def on_delete(&block)
     @handlers.delete << block
+  end
+  
+  def on_block(&block)
+    @handlers.block << block
+  end
+  
+  def on_unblock(&block)
+    @handlers.unblock << block
   end
   
   def on_reconnect(&block)
@@ -172,6 +184,9 @@ class Chirpstream
   
   def data_handler(user)
     Proc.new{|parsed_data|
+      
+      pp parsed_data
+      
       if parsed_data['direct_message']
         dispatch_direct_message(user, parsed_data)
       elsif parsed_data['friends']

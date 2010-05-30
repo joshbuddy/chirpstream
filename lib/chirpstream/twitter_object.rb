@@ -3,10 +3,10 @@ class TwitterObject
   SINGLE_USER_URL = "http://api.twitter.com/1/users/show/%s.json"
   SINGLE_TWEET_URL = "http://api.twitter.com/1/statuses/show/%s.json"
 
-  attr_reader :base
+  attr_reader :base, :data
 
   def initialize(base, data = nil)
-    @base = base
+    @base, @data = base, data
     from_json(data) if data
     yield self if block_given?
   end
