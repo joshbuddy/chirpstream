@@ -18,6 +18,7 @@ require 'chirpstream/event/favorite'
 require 'chirpstream/event/unfavorite'
 require 'chirpstream/event/delete'
 require 'chirpstream/user'
+require 'chirpstream/friend'
 require 'chirpstream/tweet'
 require 'chirpstream/connect'
 
@@ -27,7 +28,11 @@ class Chirpstream
 
   attr_reader :handlers
   
-  Handlers = Struct.new(:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :reconnect, :connect, :direct_message, :block, :unblock)
+  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed]
+  ConnectionHandlerTypes = [:reconnect, :connect]
+  HandlerTypes = ConnectionHandlerTypes + EventHandlerTypes
+  
+  Handlers = Struct.new(*HandlerTypes)
 
   attr_reader :consumer_token, :consumer_secret, :fill_in
 
@@ -36,61 +41,31 @@ class Chirpstream
     @consumer_secret = options && options[:consumer_secret]
     @fill_in = options && options[:fill_in]
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
-    @handlers = Handlers.new([], [], [], [], [], [], [], [], [], [], [], [], [])
+    @handlers = Handlers.new(*HandlerTypes.map{|h| []})
   end
 
-  def on_friend(&block)
-    @handlers.friend << block
-  end
-  
-  def on_tweet(&block)
-    @handlers.tweet << block
-  end
-  
-  def on_follow(&block)
-    @handlers.follow << block
-  end
-  
-  def on_unfollow(&block)
-    @handlers.follow << block
-  end
-  
-  def on_favorite(&block)
-    @handlers.favorite << block
-  end
-  
-  def on_unfavorite(&block)
-    @handlers.unfavorite << block
-  end
-  
-  def on_retweet(&block)
-    @handlers.retweet << block
-  end
-  
-  def on_direct_message(&block)
-    @handlers.direct_message << block
+  HandlerTypes.each do |h|
+    module_eval "
+    def on_#{h}(&block)
+      @handlers.#{h} << block
+    end
+    "
   end
 
-  def on_delete(&block)
-    @handlers.delete << block
+  EventHandlerTypes.each do |h|
+    const_name = h.to_s.split("_").map{|p| p.capitalize}.join
+    module_eval "
+    def dispatch_#{h}(user, data)
+      unless @handlers.#{h}.empty?
+        obj = #{const_name}.new(self, data)
+        @fill_in ? obj.load_all(user) { |nobj|
+          @handlers.#{h}.each{|h| h.call(nobj, user)}
+        } : @handlers.#{h}.each{|h| h.call(obj, user)}
+      end
+    end
+    "
   end
-  
-  def on_block(&block)
-    @handlers.block << block
-  end
-  
-  def on_unblock(&block)
-    @handlers.unblock << block
-  end
-  
-  def on_reconnect(&block)
-    @handlers.reconnect << block
-  end
-  
-  def on_connect(&block)
-    @handlers.connect << block
-  end
-  
+
   def dispatch_friend(user, data)
     unless @handlers.friend.empty?
       data['friends'].each_slice(100) do |friend_ids|
@@ -105,69 +80,6 @@ class Chirpstream
           parser << chunk
         }
       end
-    end
-  end
-  
-  def dispatch_tweet(user, data)
-    unless @handlers.tweet.empty?
-      tweet = Tweet.new(self, data)
-      @fill_in ? tweet.load_all(user) { |f|
-        @handlers.tweet.each{|h| h.call(f, user)}
-      } : @handlers.tweet.each{|h| h.call(tweet, user)}
-    end
-  end
-  
-  def dispatch_follow(user, data)
-    unless @handlers.follow.empty?
-      follow = Follow.new(self, data)
-      @fill_in ? follow.load_all(user) { |f|
-        @handlers.follow.each{|h| h.call(f, user)}
-      } : @handlers.follow.each{|h| h.call(follow, user)}
-    end
-  end
-  
-  def dispatch_direct_message(user, data)
-    unless @handlers.direct_message.empty?
-      dm = DirectMessage.new(self, data)
-      @fill_in ? dm.load_all(user) { |f|
-        @handlers.direct_message.each{|h| h.call(f, user)}
-      } : @handlers.direct_message.each{|h| h.call(dm, user)}
-    end
-  end
-
-  def dispatch_favorite(user, data)
-    unless @handlers.favorite.empty?
-      favorite = Favorite.new(self, data)
-      @fill_in ? favorite.load_all(user) { |f|
-        @handlers.favorite.each{|h| h.call(f, user)}
-      } : @handlers.favorite.each{|h| h.call(favorite, user)}
-    end
-  end
-  
-  def dispatch_unfavorite(user, data)
-    unless @handlers.unfavorite.empty?
-      unfavorite = Unfavorite.new(self, data)
-      @fill_in ? unfavorite.load_all(user) { |f|
-        @handlers.unfavorite.each{|h| h.call(f, user)}
-      } : @handlers.unfavorite.each{|h| h.call(unfavorite, user)}
-    end
-  end
-  
-  def dispatch_retweet(user, data)
-    unless @handlers.retweet.empty?
-      retweet = Retweet.new(self, data)
-      @fill_in ? retweet.load_all(user) { |f|
-        @handlers.retweet.each{|h| h.call(f, user)}
-      } : @handlers.retweet.each{|h| h.call(retweet, user)}
-    end
-  end
-    
-  def dispatch_delete(user, data)
-    unless @handlers.delete.empty?
-      delete = Delete.new(self, data)
-      @fill_in ? delete.load_all(user) { |f|
-        @handlers.delete.each{|h| h.call(f, user)}
-      } : @handlers.delete.each{|h| h.call(delete, user)}
     end
   end
   
@@ -202,18 +114,11 @@ class Chirpstream
       elsif parsed_data['text']
         dispatch_tweet(user, parsed_data)
       elsif parsed_data['event']
-        case parsed_data['event']
-        when 'follow'
-          dispatch_follow(user, parsed_data)
-        when 'favorite'
-          dispatch_favorite(user, parsed_data)
-        when 'unfavorite'
-          dispatch_unfavorite(user, parsed_data)
-        when 'retweet'
-          dispatch_retweet(user, parsed_data)
+        method_sym = "dispatch_#{parsed_data['event']}".to_sym
+        if respond_to?(method_sym)
+          send("dispatch_#{parsed_data['event']}".to_sym, user, parsed_data)
         else
-          puts "weird event"
-          pp parsed_data
+          puts "no handler for #{parsed_data['event']}"
         end
       elsif parsed_data['delete']
         dispatch_delete(user, parsed_data)
