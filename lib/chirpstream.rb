@@ -42,6 +42,7 @@ class Chirpstream
     @fill_in = options && options[:fill_in]
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
     @handlers = Handlers.new(*HandlerTypes.map{|h| []})
+    @on_connect_called = {}
   end
 
   HandlerTypes.each do |h|
@@ -89,9 +90,9 @@ class Chirpstream
   end
   
   def dispatch_connect(user)
-    while h = @handlers.connect.shift
-      h.call(user)
-    end
+    return if @on_connect_called[user.name]
+    @handlers.connect.each{|h| h.call(user)}
+    @on_connect_called[user.name] = true
   end
   
   def connect(*users)

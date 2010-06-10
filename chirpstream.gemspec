@@ -16,7 +16,6 @@ Gem::Specification.new do |s|
   s.executables = ["chirp_growl"]
   s.files = [
     "Gemfile",
-    "Gemfile.lock",
     "Rakefile",
     "Readme.rdoc",
     "VERSION",
@@ -33,6 +32,7 @@ Gem::Specification.new do |s|
     "lib/chirpstream/event/unfavorite.rb",
     "lib/chirpstream/tweet.rb",
     "lib/chirpstream/twitter_object.rb",
+    "lib/chirpstream/friend.rb",
     "lib/chirpstream/user.rb"
   ]
   s.homepage = %q{http://github.com/joshbuddy/chirpstream}
@@ -50,7 +50,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<em-http-request>, [">= 0.2.7"])
       s.add_runtime_dependency(%q<yajl-ruby>, [">= 0.7.5"])
       s.add_runtime_dependency(%q<load_path_find>, [">= 0.0.5"])
-      s.add_runtime_dependency(%q<oauth>, [">= 0.4.0"])
+      s.add_runtime_dependency(%q<oauth>, [">= 0.3.5"])
     else
       s.add_dependency(%q<eventmachine>, [">= 0.12.10"])
       s.add_dependency(%q<em-http-request>, [">= 0.2.7"])
