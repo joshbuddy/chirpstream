@@ -101,8 +101,8 @@ class Chirpstream
       EM.run { connect(*users) }
     else
       @users.concat(users)
-      EM.add_periodic_timer(1) {
-        users_to_connect = users.slice!(0, 10)
+      @user_adder ||= EM.add_periodic_timer(1) {
+        users_to_connect = @users.slice!(0, 10)
         if users_to_connect && !users_to_connect.empty?
           users_to_connect.each do |user|
             connect_single(user)
