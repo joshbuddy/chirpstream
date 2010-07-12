@@ -28,8 +28,8 @@ class Chirpstream
 
   attr_reader :handlers
   
-  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_created, :list_destroyed, :list_member_added, :list_member_removed, :list_updated, :list_user_subscribed, :list_user_unsubscribed]
-  ConnectionHandlerTypes = [:reconnect, :connect]
+  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed]
+  ConnectionHandlerTypes = [:disconnect, :connect]
   HandlerTypes = ConnectionHandlerTypes + EventHandlerTypes
   
   Handlers = Struct.new(*HandlerTypes)
@@ -85,9 +85,9 @@ class Chirpstream
     end
   end
   
-  def dispatch_reconnect(user)
-    return if @handlers.reconnect.empty?
-    @handlers.reconnect.each{|h| h.call(user)}
+  def dispatch_disconnect(user)
+    return if @handlers.disconnect.empty?
+    @handlers.disconnect.each{|h| h.call(user)}
   end
   
   def dispatch_connect(user)
@@ -138,8 +138,7 @@ class Chirpstream
     
     http = get_connection(user, @connect_url, :get)
     http.errback { |e, err|
-      dispatch_reconnect(user)
-      connect
+      dispatch_disconnect(user)
     }
     http.stream { |chunk|
       dispatch_connect(user)
