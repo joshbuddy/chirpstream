@@ -43,6 +43,7 @@ class Chirpstream
     @connect_url = "http://chirpstream.twitter.com/2b/user.json"
     @handlers = Handlers.new(*HandlerTypes.map{|h| []})
     @on_connect_called = {}
+    @users = []
   end
 
   HandlerTypes.each do |h|
@@ -99,9 +100,15 @@ class Chirpstream
     unless EM.reactor_running?
       EM.run { connect(*users) }
     else
-      users.each do |user, index|
-        connect_single(user)
-      end
+      @users.concat(users)
+      EM.add_periodic_timer(1) {
+        users_to_connect = users.slice!(0, 10)
+        if users_to_connect && !users_to_connect.empty?
+          users_to_connect.each do |user|
+            connect_single(user)
+          end
+        end
+      }
     end
   end
 
