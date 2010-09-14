@@ -27,6 +27,14 @@ class Chirpstream
         end
       end
 
+      class Simple
+        attr_reader :twitter_id
+        def initialize(twitter_id)
+          @twitter_id = twitter_id
+        end
+      end
+
+
       def self.oauth(access_token, access_secret, name = nil)
         Oauth.new(access_token, access_secret, name)
       end

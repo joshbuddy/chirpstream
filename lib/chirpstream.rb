@@ -9,6 +9,7 @@ require 'oauth/client/em_http'
 
 $LOAD_PATH.add_current
 
+require 'sitestream'
 require 'chirpstream/twitter_object'
 require 'chirpstream/event'
 require 'chirpstream/event/follow'
@@ -136,6 +137,7 @@ class Chirpstream
       end
     }
     
+    puts "connecting to #{@connect_url}"
     http = get_connection(user, @connect_url, :get)
     http.errback { |e, err|
       dispatch_disconnect(user)
