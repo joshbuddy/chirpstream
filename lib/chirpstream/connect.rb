@@ -53,6 +53,7 @@ class Chirpstream
         end
       else
         http = EM::HttpRequest.new(url).send(method, options.merge(:head => {'authorization' => [user.name, user.password]}))
+        http
       end
       
     end

@@ -9,6 +9,7 @@ require 'oauth/client/em_http'
 
 $LOAD_PATH.add_current
 
+require 'array'
 require 'sitestream'
 require 'chirpstream/twitter_object'
 require 'chirpstream/event'
