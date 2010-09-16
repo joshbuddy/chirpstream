@@ -1,0 +1,59 @@
+--- 
+dependencies: 
+  oauth: 
+    group: 
+    - :default
+    version: ">= 0.4.0"
+  rainbow: 
+    group: 
+    - :default
+    version: ">= 0"
+  growl: 
+    group: 
+    - :default
+    version: ">= 0"
+  json: 
+    group: 
+    - :default
+    version: ">= 0"
+  em-http-request: 
+    group: 
+    - :default
+    version: ">= 0.2.7"
+  eventmachine: 
+    group: 
+    - :default
+    version: ">= 0.12.10"
+  load_path_find: 
+    group: 
+    - :default
+    version: ">= 0.0.5"
+  yajl-ruby: 
+    group: 
+    - :default
+    version: ">= 0.7.5"
+specs: 
+- addressable: 
+    version: 2.1.2
+- dirge: 
+    version: 0.0.4
+- eventmachine: 
+    version: 0.12.10
+- em-http-request: 
+    version: 0.2.7
+- growl: 
+    version: 1.0.3
+- json: 
+    version: 1.4.3
+- load_path_find: 
+    version: 0.0.5
+- oauth: 
+    version: 0.4.0
+- rainbow: 
+    version: 1.0.4
+- yajl-ruby: 
+    version: 0.7.6
+hash: 751ca486a5dabecc00361525588fc94f8bf428d9
+sources: 
+- Rubygems: 
+    uri: http://gemcutter.org
