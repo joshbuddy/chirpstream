@@ -30,7 +30,7 @@ class Chirpstream
 
   attr_reader :handlers
   
-  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed]
+  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed, :everything]
   ConnectionHandlerTypes = [:disconnect, :connect]
   HandlerTypes = ConnectionHandlerTypes + EventHandlerTypes
   
