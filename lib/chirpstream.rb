@@ -19,10 +19,13 @@ require 'chirpstream/event/retweet'
 require 'chirpstream/event/favorite'
 require 'chirpstream/event/unfavorite'
 require 'chirpstream/event/delete'
+require 'chirpstream/event/list_member'
+require 'chirpstream/event/list_subscribe'
 require 'chirpstream/user'
 require 'chirpstream/friend'
 require 'chirpstream/tweet'
 require 'chirpstream/connect'
+require 'chirpstream/list'
 
 class Chirpstream
   
@@ -30,7 +33,7 @@ class Chirpstream
 
   attr_reader :handlers
   
-  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed, :everything]
+  EventHandlerTypes = [:friend, :tweet, :follow, :unfollow, :favorite, :unfavorite, :retweet, :delete, :direct_message, :block, :unblock, :list_member_removed, :list_member_added, :list_user_subscribed, :list_user_unsubscribed, :everything, :user_update]
   ConnectionHandlerTypes = [:disconnect, :connect]
   HandlerTypes = ConnectionHandlerTypes + EventHandlerTypes
   

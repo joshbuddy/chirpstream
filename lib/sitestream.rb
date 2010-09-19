@@ -9,6 +9,7 @@ require 'oauth/client/em_http'
 
 $LOAD_PATH.add_current
 
+require 'chirpstream'
 require 'chirpstream/twitter_object'
 require 'chirpstream/event'
 require 'chirpstream/event/follow'
@@ -22,8 +23,8 @@ require 'chirpstream/friend'
 require 'chirpstream/tweet'
 require 'chirpstream/connect'
 
-MAX_PER_STREAM = 5
-RECONNECT_AFTER = 2
+MAX_PER_STREAM = 100
+RECONNECT_AFTER = 5
 
 Signal.trap("USR1") do
   puts "Received USR1"
@@ -43,6 +44,21 @@ class Sitestream < Chirpstream
     @connect_url = "http://betastream.twitter.com/2b/site.json"
   end
 
+  EventHandlerTypes.each do |h|
+    const_name = h.to_s.split("_").map{|p| p.capitalize}.join
+    module_eval "
+    def dispatch_#{h}(user, data, http)
+      unless @handlers.#{h}.empty?
+        obj = #{const_name}.new(self, data)
+        @fill_in ? obj.load_all(user) { |nobj|
+          @handlers.#{h}.each{|h| h.call(nobj, user, http)}
+        } : @handlers.#{h}.each{|h| h.call(obj, user, http)}
+      end
+    end
+    "
+  end
+
+
   def self.should_check_stream=(value)
     @@should_check_stream = value
   end
@@ -51,9 +67,14 @@ class Sitestream < Chirpstream
     @accounts = accounts.uniq
   end
 
+  def dispatch_user_update(user,data,http)
+    return if @handlers.user_update.empty?
+    @handlers.user_update.each{|h| h.call(data,user,http)}
+  end
+
   def dispatch_everything(user,data,http)
     return if @handlers.everything.empty?
-    @handlers.everything.each{|h| h.call(user,data,http)}
+    @handlers.everything.each{|h| h.call(data,user,http)}
   end
 
   def dispatch_connect(user, http)
@@ -127,20 +148,20 @@ class Sitestream < Chirpstream
 
 			dispatch_everything(user,parsed_data,@http_accounts[user.twitter_id.to_s])
       if parsed_data['direct_message']
-        dispatch_direct_message(user, parsed_data)
+        dispatch_direct_message(user, parsed_data, @http_accounts[user.twitter_id.to_s])
       elsif parsed_data['friends']
-        dispatch_friend(user, parsed_data)
+        dispatch_friend(user, parsed_data, @http_accounts[user.twitter_id.to_s])
       elsif parsed_data['text']
-        dispatch_tweet(user, parsed_data)
+        dispatch_tweet(user, parsed_data, @http_accounts[user.twitter_id.to_s])
       elsif parsed_data['event']
         method_sym = "dispatch_#{parsed_data['event']}".to_sym
         if respond_to?(method_sym)
-          send("dispatch_#{parsed_data['event']}".to_sym, user, parsed_data)
+          send("dispatch_#{parsed_data['event']}".to_sym, user, parsed_data, @http_accounts[user.twitter_id.to_s])
         else
-          puts "no handler for #{parsed_data['event']}"
+          puts "NO HANDLER FOR #{parsed_data['event']}".foreground(:yellow)
         end
       elsif parsed_data['delete']
-        dispatch_delete(user, parsed_data)
+        dispatch_delete(user, parsed_data, @http_accounts[user.twitter_id.to_s])
       else
         puts "i didn't know what to do with this!"
         pp parsed_data

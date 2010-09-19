@@ -38,6 +38,20 @@ class TwitterObject
       "
     end
   end
+
+	def self.list_writer(*attrs)
+    attrs.each do |attr|
+      module_eval "
+      def #{attr}=(#{attr})
+        @#{attr} = if #{attr}.is_a?(Hash)
+          Chirpstream::List.new(base, #{attr})
+        else
+          Chirpstream::List.new(base) {|t| t.id = #{attr}}
+        end
+      end
+      "
+    end
+	end
   
   def from_json(data)
     self.class.attrs.each { |a| self.send(:"#{a}=", data[a.to_s]) }
