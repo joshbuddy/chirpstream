@@ -24,6 +24,7 @@ require 'chirpstream/tweet'
 require 'chirpstream/connect'
 
 MAX_PER_STREAM = 100
+MAX_STREAM_PER_SECOND = 10
 RECONNECT_AFTER = 5
 
 Signal.trap("USR1") do
@@ -33,7 +34,7 @@ end
 
 module EventMachine
   class HttpClient
-    attr_accessor :chirp_id, :account_ids, :should_close, :dispatched_connect
+    attr_accessor :chirp_id, :account_ids, :should_close, :dispatched_connect, :last_content_at, :should_reconnect
   end
 end
 
@@ -104,6 +105,7 @@ class Sitestream < Chirpstream
 		# We remove users as being connected, only if this stream is not a reconnection
 		# if not in @https it means it was a reconnection
 		if @https.include? http
+			puts "dispatch_disconnect (1) #{http.account_ids.count} accounts"
 			http.account_ids.each do |t|
 				@http_accounts.delete(t.to_s) if @http_accounts[t.to_s] and @http_accounts[t.to_s] == http # remove http link
 			end
@@ -111,6 +113,7 @@ class Sitestream < Chirpstream
     @https.delete(http)
     return if @handlers.disconnect.empty?
     @handlers.disconnect.each{|h| h.call(user,http)}
+		connect_missing_accounts # this reconnects accounts when we got disconnected
   end
 
   def connect_for_twit_ids(user,twit_ids, force_connect=false)
@@ -124,9 +127,9 @@ class Sitestream < Chirpstream
 
     @chirp_id += 1
 
-    url = "#{@connect_url}?follow=#{CGI.escape twit_ids.join(',')}"
+    url = "#{@connect_url}?follow=#{CGI.escape twit_ids.join(',')}&with=followings"
     http = get_connection(user, url, :get)
-    puts "Connecting to #{url} (#{twit_ids.join(',')})"
+    puts "Connecting stream #{@chirp_id} to #{@connect_url} (#{twit_ids.length})"
 
     # for later reference
     http.chirp_id = @chirp_id
@@ -172,15 +175,42 @@ class Sitestream < Chirpstream
       dispatch_disconnect(user,http)
     }
     http.stream { |chunk|
+			http.last_content_at = Time.now
+			#puts "#{http.chirp_id} received #{chunk}"
       dispatch_connect(user,http)
       begin
+				#puts "#{http.chirp_id} received #{chunk}"
         parser << chunk
       rescue Yajl::ParseError
+				http.should_reconnect = true
         p $!
         puts "bad chunk: #{chunk.inspect}"
+				#url = "#{@connect_url}?follow=#{CGI.escape http.twit_ids.join(',')}&with=followings"
+				#puts "url called was #{url}"
       end
     }
   end
+
+	def reconnect_unactive_streams
+		disconnected_at_least_one = false
+		twit_ids_to_reconnect = []
+		https_to_disconnect = []
+    @https.each_with_index do |http,i|
+			if (http.last_content_at and (Time.now - http.last_content_at) > 30) or http.should_reconnect
+				puts "Streaming #{http.chirp_id} has inactivity, reconnecting. should_reconnect: #{http.should_reconnect}"
+				disconnected_at_least_one = true
+				twit_ids_to_reconnect += http.account_ids
+
+				https_to_disconnect << old_http
+				http.should_close
+				http.close_connection
+			end
+		end
+
+    twit_ids_to_reconnect.in_groups_of(MAX_PER_STREAM,false).each do |group|
+      connect_for_twit_ids(@user,group,true)
+    end
+	end
 
   def check_stream
     puts "Checking streams"
@@ -188,16 +218,18 @@ class Sitestream < Chirpstream
 		disconnected_at_least_one = false
 		twit_ids_to_reconnect = []
     @https.each_with_index do |http,i|
-      puts "stream #{http.chirp_id} has #{http.account_ids.length} accounts: #{http.account_ids.join(',')}"
+			http.last_content_at ||= Time.now
+      puts "stream #{http.chirp_id} has #{http.account_ids.length} last activity #{(Time.now - http.last_content_at).floor}sec ago" # accounts: #{http.account_ids.join(',')}"
 
-      if http.account_ids.length < MAX_PER_STREAM and ((i+1) < @https.length or disconnected_at_least_one)
+      if (http.account_ids.length < MAX_PER_STREAM and ((i+1) < @https.length or disconnected_at_least_one)) or
+				(http.last_content_at and (Time.now - http.last_content_at) > 30) or http.should_reconnect
 				disconnected_at_least_one = true
         #http.close_connection
 				http.should_close = true
 				twit_ids_to_reconnect += http.account_ids
       end
     end
-    puts "Reconnecting missing accounts: #{twit_ids_to_reconnect.inspect}" if twit_ids_to_reconnect.length > 0
+    puts "Reconnecting missing accounts: #{twit_ids_to_reconnect.length} accounts" if twit_ids_to_reconnect.length > 0
 
     twit_ids_to_reconnect.in_groups_of(MAX_PER_STREAM,false).each do |group|
       connect_for_twit_ids(@user,group,true)
@@ -207,20 +239,43 @@ class Sitestream < Chirpstream
   def connect_missing_accounts
     twit_ids ||= accounts
     twit_ids.reject!{|t| @http_accounts.has_key? t.to_s } # remove already connected account
-    puts "Connecting missing accounts: #{twit_ids.inspect}"
 
-    twit_ids.in_groups_of(MAX_PER_STREAM,false).each do |group|
-      connect_for_twit_ids(@user,group)
-    end
+		if twit_ids.length > 0
+			puts "Connecting missing accounts: #{twit_ids.length} accounts"
+			connect_all_streams(twit_ids,@user)
+		end
+
+    #twit_ids.in_groups_of(MAX_PER_STREAM,false).each do |group|
+    #  connect_for_twit_ids(@user,group)
+    #end
   end
+
+	def connect_all_streams(account_ids,user)
+		puts "connect_all_streams for #{account_ids.length} accounts"
+		connected = 0
+		connected_accounts = []
+
+    account_ids.in_groups_of(MAX_PER_STREAM,false).each do |group|
+			if connected > MAX_STREAM_PER_SECOND
+				puts "Delaying, too many stream per second, will call #{(account_ids - connected_accounts).length} accounts"
+				connected = 0
+
+				EM.add_timer(1) {
+					connect_all_streams(account_ids - connected_accounts,user)
+				}
+				return
+			end
+
+			connected_accounts += group
+      connect_for_twit_ids(user,group)
+			connected += 1
+    end
+	end
 
   def connect_single(user)
     @@should_check_stream = false
     @user = user
-
-    accounts.in_groups_of(MAX_PER_STREAM,false).each do |group|
-      connect_for_twit_ids(user,group)
-    end
+		connect_all_streams(accounts,user)
 
     @check_streams ||= EM.add_periodic_timer(1) {
       if @@should_check_stream
